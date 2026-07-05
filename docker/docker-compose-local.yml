@@ -1,0 +1,66 @@
+services:
+  minio:
+    image: registry.cn-hangzhou.aliyuncs.com/minio/minio:latest
+    container_name: lakehouse-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - lakehouse-net
+
+  hive-metastore:
+    image: registry.cn-hangzhou.aliyuncs.com/apache/hive:4.0.0
+    container_name: lakehouse-hive-metastore
+    ports:
+      - "9083:9083"
+    environment:
+      HMS_DB: derby
+      SERVICE_NAME: metastore
+      HIVE_METASTORE_PORT: 9083
+    command: /opt/hive/bin/hive --service metastore
+    networks:
+      - lakehouse-net
+    depends_on:
+      - minio
+
+  gravitino:
+    image: registry.cn-hangzhou.aliyuncs.com/apache/gravitino:latest
+    container_name: lakehouse-gravitino
+    ports:
+      - "8090:8090"
+    networks:
+      - lakehouse-net
+    depends_on:
+      - minio
+
+  redpanda:
+    image: registry.cn-hangzhou.aliyuncs.com/redpandadata/redpanda:latest
+    container_name: lakehouse-redpanda
+    ports:
+      - "9092:9092"
+    command: redpanda start --kafka-addr 0.0.0.0:9092
+    networks:
+      - lakehouse-net
+
+  trino:
+    image: registry.cn-hangzhou.aliyuncs.com/trinodb/trino:latest
+    container_name: lakehouse-trino
+    ports:
+      - "8085:8080"
+    networks:
+      - lakehouse-net
+    depends_on:
+      - hive-metastore
+
+networks:
+  lakehouse-net:
+    driver: bridge
+
+volumes:
+  minio-data:

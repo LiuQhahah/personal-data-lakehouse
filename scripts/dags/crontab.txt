@@ -1,0 +1,3 @@
+# Lakehouse 定时任务
+# 每天 9:00 自动采集数据
+0 9 * * * /usr/bin/python3 /Users/qiang_liu/workspace/personal-lakehouse/scripts/dags/lakehouse_dag.py >> /Users/qiang_liu/.lakehouse_cron.log 2>&1
